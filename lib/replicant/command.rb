@@ -92,10 +92,22 @@ class AdbCommand < Command
       else
         cmd << " #{@repl.default_package}" if @repl.default_package && package_dependent?
         output cmd if @repl.debug?
-        result = `#{cmd}`
-        output result
+
+        result, read = ""
+        @process = IO.popen(cmd)
+        while read = @process.gets
+          output read
+          result << read
+        end
+
         result
       end
+    end
+  end
+
+  def interrupt
+    if defined? @process
+      Process.kill("INT", @process.pid)
     end
   end
 
@@ -108,7 +120,7 @@ class AdbCommand < Command
   end
 
   def interactive?
-    args == "shell" || args.start_with?("logcat")
+    args == "shell"
   end
 
   def package_dependent?

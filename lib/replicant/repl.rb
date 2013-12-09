@@ -37,6 +37,15 @@ module Replicant
       # reset terminal colors on exit
       at_exit { puts unstyled }
 
+      # trap INT so that we can pass it to the current command, if necessary
+      trap("INT") {
+        if @command.is_a?(AdbCommand)
+          @command.interrupt
+        else
+          exit
+        end
+      }
+
       loop do
         command_loop
       end
@@ -53,13 +62,14 @@ module Replicant
 
       return if command_line.strip.empty?
 
-      command = Command.load(self, command_line)
-      if command
-        command.execute
+      @command = Command.load(self, command_line)
+      if @command
+        @command.execute
         puts span("OK.", :white_fg, :bold) { unstyled }
       else
         puts "No such command"
       end
+      @command = nil
     end
 
     def debug?
